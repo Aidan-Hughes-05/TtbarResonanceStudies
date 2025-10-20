@@ -1,0 +1,15 @@
+# LxPlus
+.asetup.save
+
+# Do not store log files
+Generate/log_files/
+!Generate/log_files/.gitkeep
+
+# Do not store LHE or ROOT files
+*.lhe
+*.root
+
+# Ignore python bytecode
+*.pyc
+__pycache__/
+py.py

@@ -1,0 +1,21 @@
+executable = executable.sh
+getenv = true
+
+# need to start with 1 because we use this to set the seed
+plusone = $(Process) + 1
+ProcessPlusOne = $INT(plusone,%d)
+
+request_memory = 16GB
+request_cpus = 8
+
+log = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).log
+output = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).out
+error = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).err
+arguments = $(ProcessPlusOne) $(ARGS)
+
+transfer_input_files = executable.sh
+
+should_transfer_files = Yes
+when_to_transfer_output = ON_EXIT
+
+queue 100

@@ -1,0 +1,6 @@
+import model Standard_Model_exten_UFO
+generate p p > t t~ NP=0
+output BG_REPLACEOUTPUT
+launch
+set iseed REPLACESEED
+set nevents 50000

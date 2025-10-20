@@ -1,0 +1,11 @@
+import model Standard_Model_exten_UFO
+generate g g > t t~ NP^2==2
+output INTER_REPLACEOUTPUT
+shell cp Custom_HELAS/*.f INTER_REPLACEOUTPUT/Source/DHELAS/.
+launch
+set mhh 800
+set whh 80
+set coupteven 1.0
+set ceffe 1.0
+set iseed REPLACESEED
+set nevents 25000
