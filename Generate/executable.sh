@@ -8,7 +8,7 @@ JOBOPTION=${2}
 
 BASE_PATH=/afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen
 
-DATADIR=${BASE_PATH}/Data/${JOBOPTION}
+DATADIR=${BASE_PATH}/LHEData/${JOBOPTION}
 mkdir -p ${DATADIR} # create the output directory if it doesn't exist
 STEERINGFILE=${BASE_PATH}/Generate/JobOptions/${JOBOPTION}
 # create a new steering file for each random seed
