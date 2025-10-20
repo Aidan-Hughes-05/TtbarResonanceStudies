@@ -13,3 +13,10 @@ Generate/log_files/
 *.pyc
 __pycache__/
 py.py
+
+# Ignore C++ build/install directories
+build/
+install/
+
+# Ignore VS code
+.vscode/

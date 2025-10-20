@@ -1,6 +1,16 @@
+#include "Analysis.h"
+#include "Logger.h"
 #include "Kinematics.h"
+#include "Constants.h"
 
-void PartonAnalysis(const std::string& fileName, const std::string& outputFileName, bool doWeights = false){
+#include <ROOT/RDataFrame.hxx>
+#include <TLorentzVector.h>
+#include <TFile.h>
+#include <vector>
+#include <string>
+#include <map>
+
+void PartonAnalysisHistograms(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
     ROOT::RDataFrame df("mytree", fileName);
     ROOT::RDF::RNode node = df; 
     
@@ -14,11 +24,14 @@ void PartonAnalysis(const std::string& fileName, const std::string& outputFileNa
         return indices; 
     };
 
-    // Define the dummy column for the weight
-    std::string weightColumn = "eventWeight";
+    // Define the dummy column for the weight or apply lumi scaling
+    std::string weightColumn = "";
     if (!doWeights){
         node = node.Define("dummyWeight",[](const std::vector<int>& pdgid) { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
+    } else {
+        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
+        weightColumn = "lumiWeight";
     }
 
     node = node.Define("top_indices",myFilter,{"pdgID","pdgStatus"});
@@ -94,12 +107,12 @@ void PartonAnalysis(const std::string& fileName, const std::string& outputFileNa
     output->Close();
 }
 
-void DelphesAnalysis(const std::string& fileName, const std::string& outputFileName, bool doWeights = false){
+void DelphesAnalysis(const std::string& fileName, const std::string& outputFileName, bool doWeights){
     ROOT::RDataFrame df("Delphes", fileName);
     ROOT::RDF::RNode node = df; 
 
     // Print column names
-    g_LOG(LogLevel::INFO, "Columns available:");
+    Constants::g_LOG(LogLevel::INFO, "Columns available:");
     std::vector<std::string> columnNames = node.GetColumnNames();
     for (auto name : columnNames){
         std::cout << name << std::endl;
@@ -142,7 +155,7 @@ void DelphesAnalysis(const std::string& fileName, const std::string& outputFileN
     auto deltaPhiMuons = [](ROOT::VecOps::RVec<TLorentzVector> particles) { return Kinematics::del_phi(particles.at(0).Phi(),particles.at(1).Phi()); };
     // 5) 
     auto isPtOrdered = [](ROOT::VecOps::RVec<Float_t> pt) { 
-        if (pt.size() < 2) g_LOG(LogLevel::ERROR, "Function called with less than two particles to compare!");
+        if (pt.size() < 2) Constants::g_LOG(LogLevel::ERROR, "Function called with less than two particles to compare!");
         return pt.at(0) > pt.at(1); 
     };
     // 6)
@@ -310,13 +323,31 @@ void DelphesAnalysis(const std::string& fileName, const std::string& outputFileN
     output->Close();
 }
 
-void Analysis(){
-    // Example of parton - level analysis
-    std::string process = "Interference";
-    std::string dataPath = "/eos/user/d/dbaronmo/TtbarResonance/PartonROOT/"+process+".root";
-    std::string histogramOutput = process+"_histograms.root";
-    PartonAnalysis(dataPath, histogramOutput, true);
-    
-    // Example of Delphes analysis with light leptons
-    //DelphesAnalysis("DATA/EWK_Delphes.root", "EWK_Delphes.root", true);
+float CalculateLumiWeight(const std::string& fileName){
+    // Map with the luminosity weights for each process.
+    std::map<std::string, float> xSecMap = {
+        {"BG.root", 518.5}, // in pb ttbar SM
+        {"Interference.root", 0.02899},
+        {"Signal.root", 0.07545},
+    };
+    // Find the correct cross-section based on the file name
+    float xSec = 0.0;
+    for(const auto& pair : xSecMap) {
+        if (fileName.find(pair.first) != std::string::npos) {
+            xSec = pair.second;
+            break;
+        }
+    }
+    // Check something was found
+    if (xSec == 0.0) {
+        throw std::runtime_error("Cross-section not found for the given file name: " + fileName);
+    }
+
+    // Calculate sum of weights
+    ROOT::RDataFrame df("mytree", fileName);
+    auto sumWeights = df.Sum("eventWeight").GetValue();
+    float lumiWeight = 140.1 * 1000 * xSec / sumWeights;
+
+    std::cout << "Calculated luminosity weight: " << lumiWeight << std::endl;
+    return lumiWeight;
 }
