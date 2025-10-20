@@ -312,8 +312,8 @@ void DelphesAnalysis(const std::string& fileName, const std::string& outputFileN
 
 void Analysis(){
     // Example of parton - level analysis
-    std::string process = "inter_100";
-    std::string dataPath = "../Data/"+process+".root";
+    std::string process = "Interference";
+    std::string dataPath = "/eos/user/d/dbaronmo/TtbarResonance/PartonROOT/"+process+".root";
     std::string histogramOutput = process+"_histograms.root";
     PartonAnalysis(dataPath, histogramOutput, true);
     
