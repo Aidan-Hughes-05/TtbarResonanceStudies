@@ -1,6 +1,9 @@
 #include "Analysis.h"
+
 #include <string>
 #include <iostream>
+
+#include <TROOT.h>
 
 int main(int argc, char** argv){
     if (argc != 4){
@@ -14,8 +17,11 @@ int main(int argc, char** argv){
 
     float lumiWeight = CalculateLumiWeight(inputFileName);
 
-    if (mode=="h") PartonAnalysisHistograms(inputFileName, outputFileName, lumiWeight, true);
-    // DelphesAnalysis(inputFileName, outputFileName, useLumiWeights);
+
+    ROOT::EnableImplicitMT(8); // Enable multi-threading with 8 threads
+
+    if (mode=="h") PartonHistograms(inputFileName, outputFileName, lumiWeight, true);
+    if (mode=="n") PartonNtuples(inputFileName, outputFileName, lumiWeight, true);
 
     return 0;
 }

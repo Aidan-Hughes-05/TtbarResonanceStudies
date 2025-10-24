@@ -10,7 +10,7 @@
 #include <string>
 #include <map>
 
-void PartonAnalysisHistograms(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
+void PartonHistograms(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
     ROOT::RDataFrame df("mytree", fileName);
     ROOT::RDF::RNode node = df; 
     
@@ -18,7 +18,7 @@ void PartonAnalysisHistograms(const std::string& fileName, const std::string& ou
     // Status = 1 means final state particles
     auto myFilter = [](std::vector<int> pdgid, std::vector<int> status) { 
         std::vector<int> indices{};
-        for (int i{} ; i<pdgid.size() ; i++){ 
+        for (std::size_t i{} ; i<pdgid.size() ; i++){ 
             if (abs(pdgid.at(i)) == 6 && status.at(i) == 1) indices.push_back(i); 
         } 
         return indices; 
@@ -54,29 +54,25 @@ void PartonAnalysisHistograms(const std::string& fileName, const std::string& ou
     };
     node = node.Define("Tops",buildParticlesFromIndices,{"top_indices","px","py","pz","E"});
 
-    // 3) Define jets and leptons pt
+    // 3) Define tops pt, eta, phi
     node = node.Define("Top_1_pt","Tops.at(0).Pt()");
     node = node.Define("Top_2_pt","Tops.at(1).Pt()");
+    node = node.Define("Top_1_eta","Tops.at(0).Eta()");
+    node = node.Define("Top_2_eta","Tops.at(1).Eta()");
+    node = node.Define("Top_1_phi","Tops.at(0).Phi()");
+    node = node.Define("Top_2_phi","Tops.at(1).Phi()");
 
     // Some more kinematics
-    // 4)
+    // 
     auto deltaRapidity = [](std::vector<TLorentzVector> particles) { return abs(particles.at(0).Rapidity() - particles.at(1).Rapidity()); };
-    // 5)
+    //
     auto invariantMassTwoLeading = [](std::vector<TLorentzVector> particles) { return (sqrt( 2.0*particles.at(0).Dot(particles.at(1))) ); };
-    // 6)
-    auto dilepCentrality = [](std::vector<TLorentzVector> leptons, std::vector<TLorentzVector> jets) { 
-        float lepton_xi = (leptons.at(0) + leptons.at(1)).Rapidity();
-        float dijet_xi = jets.at(0).Rapidity() + jets.at(1).Rapidity();
-        float delta_y = abs(jets.at(0).Rapidity() - jets.at(1).Rapidity());
-        float centrality = abs((lepton_xi - 0.5*dijet_xi)/delta_y);
-        return centrality;
-    };
-    // 7)
+    //
     auto dileptonPt = [](std::vector<TLorentzVector> leptons) { 
         if (leptons.size() < 2) return 0.0;
         return (leptons.at(0) + leptons.at(1)).Pt(); 
     };
-    // 8)
+    //
     auto deltaPhi = [](std::vector<TLorentzVector> particles) { return Kinematics::del_phi(particles.at(0).Phi(),particles.at(1).Phi()); };
 
     // Create histogram container
@@ -84,6 +80,10 @@ void PartonAnalysisHistograms(const std::string& fileName, const std::string& ou
     histograms.push_back(node.Histo1D("top_indices_size", weightColumn));
     histograms.push_back(node.Histo1D({"Top_1_pt_basic", "Top_1_pt_basic", 500, 0, 500},"Top_1_pt", weightColumn));
     histograms.push_back(node.Histo1D({"Top_2_pt_basic", "Top_2_pt_basic", 500, 0, 500},"Top_2_pt", weightColumn));
+    histograms.push_back(node.Histo1D({"Top_1_eta_basic", "Top_1_eta_basic", 100, -5, 5},"Top_1_eta", weightColumn));
+    histograms.push_back(node.Histo1D({"Top_2_eta_basic", "Top_2_eta_basic", 100, -5, 5},"Top_2_eta", weightColumn));
+    histograms.push_back(node.Histo1D({"Top_1_phi_basic", "Top_1_phi_basic", 64, -3.2, 3.2},"Top_1_phi", weightColumn));
+    histograms.push_back(node.Histo1D({"Top_2_phi_basic", "Top_2_phi_basic", 64, -3.2, 3.2},"Top_2_phi", weightColumn));
 
     node = node.Define("deltaPhi_Tops",deltaPhi,{"Tops"});
     node = node.Define("deltaRapidity",deltaRapidity,{"Tops"});
@@ -107,7 +107,79 @@ void PartonAnalysisHistograms(const std::string& fileName, const std::string& ou
     output->Close();
 }
 
-void DelphesAnalysis(const std::string& fileName, const std::string& outputFileName, bool doWeights){
+void PartonNtuples(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
+    ROOT::RDataFrame df("mytree", fileName);
+    ROOT::RDF::RNode node = df; 
+    
+    // 1) Build the top container
+    // Status = 1 means final state particles
+    auto myFilter = [](std::vector<int> pdgid, std::vector<int> status) { 
+        std::vector<int> indices{};
+        for (std::size_t i{} ; i<pdgid.size() ; i++){ 
+            if (abs(pdgid.at(i)) == 6 && status.at(i) == 1) indices.push_back(i); 
+        } 
+        return indices; 
+    };
+
+    // Define the dummy column for the weight or apply lumi scaling
+    std::string weightColumn = "";
+    if (!doWeights){
+        node = node.Define("dummyWeight",[](const std::vector<int>& pdgid) { return 1.0; },{"pdgID"});
+        weightColumn = "dummyWeight";
+    } else {
+        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
+        weightColumn = "lumiWeight";
+    }
+
+    node = node.Define("top_indices",myFilter,{"pdgID","pdgStatus"});
+
+    auto getSize = [](std::vector<int> vec) { return vec.size(); };
+    node = node.Define("top_indices_size",getSize,{"top_indices"});
+
+    auto buildParticlesFromIndices = [](std::vector<int>& indices, std::vector<float>& px, std::vector<float>& py, std::vector<float>& pz, std::vector<float>& E){
+        std::vector<TLorentzVector> particles;
+        for (auto i : indices){
+            TLorentzVector p;
+            p.SetPxPyPzE(px.at(i), py.at(i), pz.at(i), E.at(i));
+            particles.push_back(p);
+        }
+
+        // Order by pt
+        std::sort(particles.begin(), particles.end(), [](const TLorentzVector& a, const TLorentzVector& b) { return a.Pt() > b.Pt(); });
+
+        return particles;
+    };
+    node = node.Define("Tops",buildParticlesFromIndices,{"top_indices","px","py","pz","E"});
+
+    // 3) Define tops pt, eta, phi
+    node = node.Define("Top_1_pt","Tops.at(0).Pt()");
+    node = node.Define("Top_2_pt","Tops.at(1).Pt()");
+    node = node.Define("Top_1_eta","Tops.at(0).Eta()");
+    node = node.Define("Top_2_eta","Tops.at(1).Eta()");
+    node = node.Define("Top_1_phi","Tops.at(0).Phi()");
+    node = node.Define("Top_2_phi","Tops.at(1).Phi()");
+
+    // Some more kinematics
+    // 
+    auto deltaRapidity = [](std::vector<TLorentzVector> particles) { return abs(particles.at(0).Rapidity() - particles.at(1).Rapidity()); };
+    //
+    auto invariantMassTwoLeading = [](std::vector<TLorentzVector> particles) { return (sqrt( 2.0*particles.at(0).Dot(particles.at(1))) ); };
+    //
+    auto dileptonPt = [](std::vector<TLorentzVector> leptons) { 
+        if (leptons.size() < 2) return 0.0;
+        return (leptons.at(0) + leptons.at(1)).Pt(); 
+    };
+    //
+    auto deltaPhi = [](std::vector<TLorentzVector> particles) { return Kinematics::del_phi(particles.at(0).Phi(),particles.at(1).Phi()); };
+
+    node = node.Define ("mttbar",invariantMassTwoLeading,{"Tops"});
+
+    node = node.Filter("mttbar > 500");
+
+    node.Snapshot("Ttbar",outputFileName,{"Top_1_pt","Top_2_pt","Top_1_eta","Top_2_eta","Top_1_phi","Top_2_phi",weightColumn,"mttbar"});
+}
+
+void DelphesHistograms(const std::string& fileName, const std::string& outputFileName, bool doWeights){
     ROOT::RDataFrame df("Delphes", fileName);
     ROOT::RDF::RNode node = df; 
 

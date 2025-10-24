@@ -60,7 +60,6 @@ def main():
 
     # Perform the conversion using mutiprocessing
     from multiprocessing import Pool
-    from LHEtoROOT import convert_lhe_to_root
     with Pool(processes=args.n_processes) as pool:
         pool.starmap(convert_lhe_to_root, lhe_name_dict.items()) # Items has the ROOT file name , LHE file name
 

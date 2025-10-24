@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# C++ compiler flags
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O3")
+endif()
+
 ## Application is always built from App/main.cpp
 
 # Find ROOT with required components
@@ -60,3 +65,10 @@ install(TARGETS analysis_core analysis_app
 
 # Install headers
 install(DIRECTORY Include/ DESTINATION include)
+
+# Create a setup script for easier environment setup
+set(SETUP ${CMAKE_INSTALL_PREFIX}/setup.sh)
+file(WRITE ${SETUP} "#!/bin/bash\n")
+file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
+file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib\n")
+file(APPEND ${SETUP} "export PATH=\${PATH}:${CMAKE_INSTALL_PREFIX}/bin\n")

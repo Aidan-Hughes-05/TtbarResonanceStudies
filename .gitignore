@@ -5,9 +5,10 @@
 Generate/log_files/
 !Generate/log_files/.gitkeep
 
-# Do not store LHE or ROOT files
+# Do not store LHE / ROOT / H5 files
 *.lhe
 *.root
+*.h5
 
 # Ignore python bytecode
 *.pyc
@@ -20,3 +21,6 @@ install/
 
 # Ignore VS code
 .vscode/
+
+# Ignore environment files
+.env
