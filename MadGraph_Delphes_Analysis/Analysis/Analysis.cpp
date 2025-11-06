@@ -412,7 +412,9 @@ float CalculateLumiWeight(const std::string& fileName){
     }
     // Check something was found
     if (xSec == 0.0) {
-        throw std::runtime_error("Cross-section not found for the given file name: " + fileName);
+        std::cout << "Error: Cross-section not found for file " << fileName << std::endl;
+        std::cout << "Assigning a x-sec of 1.0 pb to avoid crashing." << std::endl;
+        xSec = 1.0;  // Assign a default value
     }
 
     // Calculate sum of weights

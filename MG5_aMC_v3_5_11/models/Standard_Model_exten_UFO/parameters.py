@@ -244,7 +244,7 @@ MH = Parameter(name = 'MH',
 MHH = Parameter(name = 'MHH',
                 nature = 'external',
                 type = 'real',
-                value = 250,
+                value = 800,
                 texname = '\\text{MHH}',
                 lhablock = 'MASS',
                 lhacode = [ 99 ])
@@ -280,14 +280,6 @@ WH = Parameter(name = 'WH',
                texname = '\\text{WH}',
                lhablock = 'DECAY',
                lhacode = [ 25 ])
-
-WHH = Parameter(name = 'WHH',
-                nature = 'external',
-                type = 'real',
-                value = 0.00407,
-                texname = '\\text{WHH}',
-                lhablock = 'DECAY',
-                lhacode = [ 99 ])
 
 aEW = Parameter(name = 'aEW',
                 nature = 'internal',
@@ -468,4 +460,12 @@ muH = Parameter(name = 'muH',
                 type = 'real',
                 value = 'cmath.sqrt(lam*vev**2)',
                 texname = '\\mu')
+
+WHH = Parameter(name = 'WHH',
+                nature = 'internal',
+                type = 'real',
+                value = '((3*MT**2)*(MHH**2 - 4*MT**2)**0.5*((coupteven**2 + couptodd**2)*MHH**2 - (2*coupteven*MT)**2)/((8*MHH**2)*cmath.pi*vev**2))',
+                texname = '\\text{WHH}',
+                lhablock = 'DECAY',
+                lhacode = [ 99 ])
 
