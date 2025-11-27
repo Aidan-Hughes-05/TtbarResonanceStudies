@@ -9,7 +9,7 @@ import uproot
 from Common import LoopStorage, print_branches
 
 # Add event-level branches
-event_level = ["lumiWeight", "mttbar"]
+event_level = ["lumiWeight", "mttbar", "Coupling"]
 
 def get_particle_kinematics(particle_container_name):
     kinematics = ['pt', 'eta', 'phi']
@@ -97,6 +97,7 @@ def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events
         # Tops
         event_weight = lumiWeight
         mttbar = tree['mttbar']
+        coupling = tree['Coupling']
         top_1_kinematics = get_particle_kinematics('Top_1')
         top_2_kinematics = get_particle_kinematics('Top_2')
         top_1_pt, top_1_eta, top_1_phi = tree[top_1_kinematics[0]], tree[top_1_kinematics[1]], tree[top_1_kinematics[2]]
@@ -144,7 +145,8 @@ def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events
 
             global_data[save_index] = (
                 float(event_weight[i]),
-                float(mttbar[i])
+                float(mttbar[i]),
+                float(coupling[i])
             )
 
             save_index += 1
@@ -173,7 +175,7 @@ def create_H5(name, num_events_to_save):
     with h5py.File(name, 'w') as f:
         # Declare datatypes
         particles_dt = np.dtype([('top1_pt', np.float32), ('top1_eta', np.float32), ('top1_phi', np.float32), ('top2_pt', np.float32), ('top2_eta', np.float32), ('top2_phi', np.float32)])
-        global_dt = np.dtype([('lumiWeight', np.float32),('mttbar', np.float32)])
+        global_dt = np.dtype([('lumiWeight', np.float32),('mttbar', np.float32), ('coupling', np.float32)])
         metadata_dt = np.dtype([('num_saved_events', np.float32)])
 
         # Create groups and datasets as needed
@@ -190,7 +192,7 @@ def create_H5(name, num_events_to_save):
 
 def argparser():
 
-    parser = argparse.ArgumentParser(description='Convert ROOT dataset to HyPER format')
+    parser = argparse.ArgumentParser(description='Convert ROOT dataset to H5 format')
     parser.add_argument('-i', '--inputs',  type=str, required=True, help='Comma separated list of ROOT files from which to read events.')
     parser.add_argument('-o', '--output', type=str, help='Output .h5 file')
     parser.add_argument('-p', '--print-branches', action='store_true', help='Print branches in the input ROOT file.', required=False)

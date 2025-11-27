@@ -6,12 +6,66 @@
 #include <ROOT/RDataFrame.hxx>
 #include <TLorentzVector.h>
 #include <TFile.h>
+#include <TChain.h>
+
 #include <vector>
 #include <string>
 #include <map>
+#include <filesystem>
+#include <iostream>
+#include <map>
 
-void PartonHistograms(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
-    ROOT::RDataFrame df("mytree", fileName);
+void getChainFromUserInput(const std::vector<std::filesystem::path>& filesToProcess, TChain& chain){
+    // Check validity
+    if (filesToProcess.empty()){
+        Constants::g_LOG(LogLevel::ERROR, "No files provided to build TChain.");
+        throw std::runtime_error("");
+    }
+    // Form the TChain from the list.
+    for (const auto& filePath : filesToProcess){
+        const std::string& fileName = filePath.string();
+        Constants::g_LOG(LogLevel::INFO, "Adding file to TChain: " + fileName);
+        chain.Add(fileName.c_str());
+    }
+}
+
+std::map<std::string, float> getTheoryParametersFromFileName(const std::filesystem::path& filePath){
+    std::map<std::string, float> theoryParameters;
+
+    // Get file name:
+    std::string fileName = filePath.filename().string();
+    if (fileName == "") {
+        Constants::g_LOG(LogLevel::ERROR, "Empty file name provided for theory parameter extraction.");
+        throw std::runtime_error("");
+    }
+
+    theoryParameters["Coupling"] = 0.0f;
+    // 1) Coupling: Find by appearance of "_c" in the file name.
+    std::size_t pos = fileName.find("_c");
+    if (pos != std::string::npos){
+        std::size_t start = pos + 2; // position after "_c"
+        std::size_t end = start+3; // Always _cXpY
+        std::string couplingString = fileName.substr(start,end);
+        // Replace "p" by "."
+        std::replace(couplingString.begin(), couplingString.end(), 'p', '.');
+        float coupling = std::stof(couplingString);
+        theoryParameters["Coupling"] = coupling;
+        Constants::g_LOG(LogLevel::INFO, "Extracted coupling parameter: " + std::to_string(coupling) + " from file name: " + fileName);
+    } else {
+        Constants::g_LOG(LogLevel::INFO, "Coupling parameter not found in file name: " + fileName+ " setting to 0.0");
+    }
+
+    return theoryParameters;
+
+}
+
+
+void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, float lumiWeight, bool doWeights){
+
+    // Figure out if the input is a file or a directory and get the TChain
+    TChain analysisTChain("mytree");
+    getChainFromUserInput(filesToProcess, analysisTChain);
+    ROOT::RDataFrame df(analysisTChain);
     ROOT::RDF::RNode node = df; 
     
     // 1) Build the top container
@@ -27,7 +81,7 @@ void PartonHistograms(const std::string& fileName, const std::string& outputFile
     // Define the dummy column for the weight or apply lumi scaling
     std::string weightColumn = "";
     if (!doWeights){
-        node = node.Define("dummyWeight",[](const std::vector<int>& pdgid) { return 1.0; },{"pdgID"});
+        node = node.Define("dummyWeight",[]() { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
     } else {
         node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
@@ -107,9 +161,15 @@ void PartonHistograms(const std::string& fileName, const std::string& outputFile
     output->Close();
 }
 
-void PartonNtuples(const std::string& fileName, const std::string& outputFileName, float lumiWeight, bool doWeights){
-    ROOT::RDataFrame df("mytree", fileName);
-    ROOT::RDF::RNode node = df; 
+void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, float lumiWeight, bool doWeights){
+    // Figure out if the input is a file or a directory and get the TChain
+    TChain analysisTChain("mytree");
+    getChainFromUserInput(filesToProcess, analysisTChain);
+    ROOT::RDataFrame df(analysisTChain);
+    ROOT::RDF::RNode node = df;
+
+    std::map<std::string, float> theoryParameters = getTheoryParametersFromFileName(filesToProcess.at(0));
+
     
     // 1) Build the top container
     // Status = 1 means final state particles
@@ -124,7 +184,7 @@ void PartonNtuples(const std::string& fileName, const std::string& outputFileNam
     // Define the dummy column for the weight or apply lumi scaling
     std::string weightColumn = "";
     if (!doWeights){
-        node = node.Define("dummyWeight",[](const std::vector<int>& pdgid) { return 1.0; },{"pdgID"});
+        node = node.Define("dummyWeight",[]() { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
     } else {
         node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
@@ -159,24 +219,34 @@ void PartonNtuples(const std::string& fileName, const std::string& outputFileNam
     node = node.Define("Top_1_phi","Tops.at(0).Phi()");
     node = node.Define("Top_2_phi","Tops.at(1).Phi()");
 
+    // Define theory parameters as columns
+    for (const auto& param : theoryParameters){
+        node = node.Define(param.first, [value=param.second]() { return value; },{});
+    }
+
     // Some more kinematics
     // 
-    auto deltaRapidity = [](std::vector<TLorentzVector> particles) { return abs(particles.at(0).Rapidity() - particles.at(1).Rapidity()); };
+    // auto deltaRapidity = [](std::vector<TLorentzVector> particles) { return abs(particles.at(0).Rapidity() - particles.at(1).Rapidity()); };
     //
     auto invariantMassTwoLeading = [](std::vector<TLorentzVector> particles) { return (sqrt( 2.0*particles.at(0).Dot(particles.at(1))) ); };
     //
-    auto dileptonPt = [](std::vector<TLorentzVector> leptons) { 
-        if (leptons.size() < 2) return 0.0;
-        return (leptons.at(0) + leptons.at(1)).Pt(); 
-    };
+    // auto dileptonPt = [](std::vector<TLorentzVector> leptons) { 
+    //    if (leptons.size() < 2) return 0.0;
+    //    return (leptons.at(0) + leptons.at(1)).Pt(); 
+    //};
     //
-    auto deltaPhi = [](std::vector<TLorentzVector> particles) { return Kinematics::del_phi(particles.at(0).Phi(),particles.at(1).Phi()); };
+    // auto deltaPhi = [](std::vector<TLorentzVector> particles) { return Kinematics::del_phi(particles.at(0).Phi(),particles.at(1).Phi()); };
 
     node = node.Define ("mttbar",invariantMassTwoLeading,{"Tops"});
 
     node = node.Filter("mttbar > 500");
 
-    node.Snapshot("Ttbar",outputFileName,{"Top_1_pt","Top_2_pt","Top_1_eta","Top_2_eta","Top_1_phi","Top_2_phi",weightColumn,"mttbar"});
+    std::vector<std::string> columnsToSave = {"Top_1_pt","Top_2_pt","Top_1_eta","Top_2_eta","Top_1_phi","Top_2_phi",weightColumn,"mttbar"};
+    for (const auto& param : theoryParameters){
+        columnsToSave.push_back(param.first);
+    }
+
+    node.Snapshot("Ttbar",outputFileName,columnsToSave);
 }
 
 void DelphesHistograms(const std::string& fileName, const std::string& outputFileName, bool doWeights){
@@ -195,7 +265,7 @@ void DelphesHistograms(const std::string& fileName, const std::string& outputFil
     float nEvents = 50000;
     float luminosity = 139.0;
     if (!doWeights){
-        node = node.Define(weightColumn,[](const std::vector<float>& dummyV) { return 1.0; },{"Event.Weight"});
+        node = node.Define(weightColumn,[]() { return 1.0; },{"Event.Weight"});
     } else {
         node = node.Define("SampleWeight",[&nEvents, &luminosity](const ROOT::VecOps::RVec<float>& eventWeight) { return eventWeight[10] * 1000 * luminosity / (nEvents * eventWeight[10]); },{"Event.Weight"});
         node = node.Define(weightColumn,[&nEvents, &luminosity](const ROOT::VecOps::RVec<float>& eventWeight, float sampleWeight) { return eventWeight[0] * sampleWeight; },{"Event.Weight","SampleWeight"});
@@ -204,7 +274,7 @@ void DelphesHistograms(const std::string& fileName, const std::string& outputFil
 
     // Define functions
     // 1)
-    auto getSize = [](ROOT::VecOps::RVec<Float_t> vec) { return vec.size(); };
+    // auto getSize = [](ROOT::VecOps::RVec<Float_t> vec) { return vec.size(); };
     // 2)
     auto buildParticlesZeroMass = [](ROOT::VecOps::RVec<Float_t>& pt){
         ROOT::VecOps::RVec<Float_t> m;
@@ -395,30 +465,40 @@ void DelphesHistograms(const std::string& fileName, const std::string& outputFil
     output->Close();
 }
 
-float CalculateLumiWeight(const std::string& fileName){
+float CalculateLumiWeight(const std::vector<std::filesystem::path>& filesToProcess){
     // Map with the luminosity weights for each process.
     std::map<std::string, float> xSecMap = {
-        {"BG.root", 518.5}, // in pb ttbar SM
-        {"Interference.root", 0.02899},
-        {"Signal.root", 0.07545},
+        {"BG", 518.5}, // in pb ttbar SM
+        {"Interference", 0.02899},
+        {"Signal", 0.07545},
     };
     // Find the correct cross-section based on the file name
     float xSec = 0.0;
-    for(const auto& pair : xSecMap) {
-        if (fileName.find(pair.first) != std::string::npos) {
-            xSec = pair.second;
-            break;
+    for (const auto& filePath : filesToProcess){
+        const std::string& fileName = filePath.filename().string();
+        for(const auto& pair : xSecMap) {
+            if (fileName.find(pair.first) != std::string::npos) {
+                xSec += pair.second;
+                break;
+            }
+        }
+        if (xSec > 0.0){
+            Constants::g_LOG(LogLevel::INFO, "Found cross-section " + std::to_string(xSec) + " pb for file " + fileName);
+            break; // Exit loop if found
         }
     }
+
     // Check something was found
     if (xSec == 0.0) {
-        std::cout << "Error: Cross-section not found for file " << fileName << std::endl;
+        std::cout << "Error: Cross-section not found " << std::endl;
         std::cout << "Assigning a x-sec of 1.0 pb to avoid crashing." << std::endl;
         xSec = 1.0;  // Assign a default value
     }
 
     // Calculate sum of weights
-    ROOT::RDataFrame df("mytree", fileName);
+    TChain analysisTChain("mytree");
+    getChainFromUserInput(filesToProcess, analysisTChain);
+    ROOT::RDataFrame df(analysisTChain);
     auto sumWeights = df.Sum("eventWeight").GetValue();
     float lumiWeight = 140.1 * 1000 * xSec / sumWeights;
 

@@ -1,11 +1,10 @@
 import model Standard_Model_exten_UFO
 generate p p > hh > t t~ NP==2
-output SIGNAL_REPLACEOUTPUT
-shell cp Custom_HELAS/*.f SIGNAL_REPLACEOUTPUT/Source/DHELAS/.
+output REPLACEOUTPUT
+shell cp Custom_HELAS/*.f REPLACEOUTPUT/Source/DHELAS/.
 launch
 set mhh 800
-set whh 80
-set coupteven 1.0
-set ceffe 1.0
+set coupteven REPLACE_COUPLING
+set ceffe REPLACE_COUPLING
 set iseed REPLACESEED
 set nevents 25000

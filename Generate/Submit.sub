@@ -8,9 +8,11 @@ ProcessPlusOne = $INT(plusone,%d)
 request_memory = 16GB
 request_cpus = 8
 
-log = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).log
-output = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).out
-error = /afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen/Generate/log_files/ttbar_resonance_$(ProcessPlusOne).err
+log_dir = /home/dbaronmo/TtbarResonance/MCJobLogs/
+
+log = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).log
+output = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).out
+error = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).err
 arguments = $(ProcessPlusOne) $(ARGS)
 
 transfer_input_files = executable.sh
@@ -18,4 +20,4 @@ transfer_input_files = executable.sh
 should_transfer_files = Yes
 when_to_transfer_output = ON_EXIT
 
-queue 100
+queue 20

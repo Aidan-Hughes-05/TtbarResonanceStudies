@@ -4,26 +4,37 @@ source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
 
 # Arguments: the first argument is the random seed, the second argument is the job option file.
 PROCESS=${1}
-JOBOPTION=${2}
+OUTPUT_DIR_NAME=${2}
+JOBOPTION=${3}
+COUPLING=${4}
+echo "TtbarEventGeneration::INFO: Job started with PROCESS=${PROCESS}, JOBOPTION=${JOBOPTION}, COUPLING=${COUPLING}"
 
-BASE_PATH=/afs/cern.ch/work/d/dbaronmo/private/TtbarResonanceMCGen
+BASE_PATH=/home/dbaronmo/TtbarResonance/TtbarResonanceStudies/
+OUTPUT_DATADIR=/home/dbaronmo/TtbarResonance/MadGraphOutputs/
+mkdir -p ${OUTPUT_DATADIR} # create the output directory if it doesn't exist
+echo "TtbarEventGeneration::INFO: Output data directory is ${OUTPUT_DATADIR}"
+echo "TtbarEventGeneration::INFO: Source code base path is ${BASE_PATH}"
 
-DATADIR=${BASE_PATH}/LHEData/${JOBOPTION}
-mkdir -p ${DATADIR} # create the output directory if it doesn't exist
 STEERINGFILE=${BASE_PATH}/Generate/JobOptions/${JOBOPTION}
 # create a new steering file for each random seed
-sed "s|REPLACESEED|${PROCESS}|g" ${STEERINGFILE} > ${STEERINGFILE}${PROCESS}
-# afterwards, edit in place
-sed -i "s|REPLACEOUTPUT|output${PROCESS}|g" ${STEERINGFILE}${PROCESS}
+NEW_STEERINGFILE=${JOBOPTION}${PROCESS}_CE${COUPLING}
+echo "TtbarEventGeneration::INFO: Making steering file replacements in ${NEW_STEERINGFILE}"
+sed "s|REPLACESEED|${PROCESS}|g" ${STEERINGFILE} > ${NEW_STEERINGFILE}
+sed -i "s|REPLACEOUTPUT|output${PROCESS}|g" ${NEW_STEERINGFILE}
+sed -i "s|REPLACE_COUPLING|${COUPLING}|g" ${NEW_STEERINGFILE}
 
 # Run MadGraph and copy the custom helas routines
+echo "TtbarEventGeneration::INFO: Running MadGraph and copying custom HELAS routines."
 cp -r ${BASE_PATH}/Custom_HELAS/ .
-${BASE_PATH}/MG5_aMC_v3_5_11/bin/mg5_aMC -f ${STEERINGFILE}${PROCESS}
+${BASE_PATH}/MG5_aMC_v3_5_11/bin/mg5_aMC -f ${NEW_STEERINGFILE}
 
 # Move the results and steering file to the output directory.
-mv ${JOBOPTION}_output${PROCESS}/Events/run_01 ${DATADIR}/output${PROCESS}
-gunzip ${DATADIR}/output${PROCESS}/unweighted_events.lhe.gz
-mv ${STEERINGFILE}${PROCESS} ${DATADIR}/steering${PROCESS}
+echo "TtbarEventGeneration::INFO: MadGraph finished. Copying output files."
+mkdir ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}
+mv output${PROCESS}/Events/run_01/unweighted_events.lhe.gz ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/unweighted_events_${PROCESS}.lhe.gz
+gunzip ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/unweighted_events_${PROCESS}.lhe.gz
+mv ${NEW_STEERINGFILE} ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/steering${PROCESS}
+echo "TtbarEventGeneration::INFO: Finished copying output files."
 
 # Exit message.
-echo "Finished running. Exiting."
+echo "TtbarEventGeneration::INFO: Finished running. Exiting."
