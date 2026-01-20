@@ -9,7 +9,7 @@ import uproot
 from Common import LoopStorage, print_branches
 
 # Add event-level branches
-event_level = ["lumiWeight", "mttbar", "Coupling"]
+event_level = ["lumiWeight", "mttbar", "Coupling", "HMass"]
 
 def get_particle_kinematics(particle_container_name):
     kinematics = ['pt', 'eta', 'phi']
@@ -98,6 +98,7 @@ def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events
         event_weight = lumiWeight
         mttbar = tree['mttbar']
         coupling = tree['Coupling']
+        hmass = tree['HMass']
         top_1_kinematics = get_particle_kinematics('Top_1')
         top_2_kinematics = get_particle_kinematics('Top_2')
         top_1_pt, top_1_eta, top_1_phi = tree[top_1_kinematics[0]], tree[top_1_kinematics[1]], tree[top_1_kinematics[2]]
@@ -146,7 +147,8 @@ def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events
             global_data[save_index] = (
                 float(event_weight[i]),
                 float(mttbar[i]),
-                float(coupling[i])
+                float(coupling[i]),
+                float(hmass[i]),
             )
 
             save_index += 1
@@ -175,7 +177,7 @@ def create_H5(name, num_events_to_save):
     with h5py.File(name, 'w') as f:
         # Declare datatypes
         particles_dt = np.dtype([('top1_pt', np.float32), ('top1_eta', np.float32), ('top1_phi', np.float32), ('top2_pt', np.float32), ('top2_eta', np.float32), ('top2_phi', np.float32)])
-        global_dt = np.dtype([('lumiWeight', np.float32),('mttbar', np.float32), ('coupling', np.float32)])
+        global_dt = np.dtype([('lumiWeight', np.float32),('mttbar', np.float32), ('coupling', np.float32), ('hmass', np.float32)])
         metadata_dt = np.dtype([('num_saved_events', np.float32)])
 
         # Create groups and datasets as needed
