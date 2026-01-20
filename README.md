@@ -10,5 +10,5 @@ Please have a look [here](https://www.notion.so/MadGraph-generation-286570f8119b
 
 Run:
 ```
-condor_submit -append "ARGS=Signal_c1p55 SIGNAL 1.5" Submit.sub
+condor_submit -append "ARGS=Signal_c1p5 SIGNAL 1.5" Submit.sub
 ```

@@ -3,7 +3,7 @@ generate p p > hh > t t~ NP==2
 output REPLACEOUTPUT
 shell cp Custom_HELAS/*.f REPLACEOUTPUT/Source/DHELAS/.
 launch
-set mhh 800
+set mhh REPLACE_MASS
 set coupteven REPLACE_COUPLING
 set ceffe REPLACE_COUPLING
 set iseed REPLACESEED

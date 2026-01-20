@@ -7,6 +7,7 @@ def get_arguments():
     parser.add_argument("--file-class", "-f", required=True, help="Prefix identifying the class of LHE files to convert. It will be added to the ROOT outputs.")
     parser.add_argument("--output-dir", "-o", required=True, help="Output directory for ROOT files.")
     parser.add_argument("--n-processes", "-n", type=int, default=4, help="Number of parallel processes to use for conversion.")
+    parser.add_argument("--no-interactive", action="store_true", help="If set, do not ask for user confirmation before proceeding.")
 
     # Check input directory existence
     args = parser.parse_args()
@@ -50,14 +51,18 @@ def main():
 
     # Show the user the operation to be performed and ask for confirmation
     print("This is the dictionary of LHE files to be converted")
+    print("Number of files to be converted: %d" % len(lhe_name_dict))
     for key, value in lhe_name_dict.items():
         print(f"{key} -> {value}")
 
-    confirmation = input("Do you want to proceed? (y/n): ")
-    if confirmation.lower() != 'y':
-        print("Operation cancelled by user.")
-        exit(0)
-
+    if args.no_interactive:
+        print("Proceeding without user confirmation due to --no-interactive flag.")
+    else:
+        confirmation = input("Do you want to proceed? (y/n): ")
+        if confirmation.lower() != 'y':
+            print("Operation cancelled by user.")
+            exit(0)
+    
     # Perform the conversion using mutiprocessing
     from multiprocessing import Pool
     with Pool(processes=args.n_processes) as pool:

@@ -3,8 +3,8 @@ generate g g > t t~ NP^2==2
 output REPLACEOUTPUT
 shell cp Custom_HELAS/*.f REPLACEOUTPUT/Source/DHELAS/.
 launch
-set mhh 800
-set coupteven 1.0
-set ceffe 1.0
+set mhh REPLACE_MASS
+set coupteven REPLACE_COUPLING
+set ceffe REPLACE_COUPLING
 set iseed REPLACESEED
 set nevents 25000

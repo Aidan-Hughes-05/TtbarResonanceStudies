@@ -27,9 +27,39 @@ std::vector<std::filesystem::path> getFilteredFiles(const std::string& inputPath
     } else if (fs::is_directory(inputPath)){ // Directory
         Constants::g_LOG(LogLevel::INFO, "Input is a directory.");
         for (const auto& entry : fs::directory_iterator(inputPath)){
-            if (entry.path().extension() == ".root" && entry.path().string().find(filter) != std::string::npos){
-                Constants::g_LOG(LogLevel::INFO, "Adding file to processing list: " + entry.path().string());
-                filteredFiles.push_back(entry.path());
+            // Only one filter passed.
+            if (filter.find(',') == std::string::npos){
+                if (entry.path().extension() == ".root" && entry.path().string().find(filter) != std::string::npos){
+                    Constants::g_LOG(LogLevel::INFO, "Adding file to processing list: " + entry.path().string());
+                    filteredFiles.push_back(entry.path());
+                }
+            } else { // Multiple filters passed.
+                // Split by comma
+                std::vector<std::string> filters;
+                std::string temp;
+                for (char c : filter){
+                    if (c == ','){
+                        filters.push_back(temp);
+                        temp = "";
+                    } else {
+                        temp += c;
+                    }
+                }
+                // Add last filter
+                if (temp != "") filters.push_back(temp);
+
+                // Check each filter
+                bool passedAllFilters = true;
+                for (const auto& f : filters){
+                    if (entry.path().string().find(f) == std::string::npos){
+                        passedAllFilters = false;
+                        break;
+                    }
+                }
+                if (entry.path().extension() == ".root" && passedAllFilters){
+                    Constants::g_LOG(LogLevel::INFO, "Adding file to processing list: " + entry.path().string());
+                    filteredFiles.push_back(entry.path());
+                }
             }
         }
     } else {
@@ -47,7 +77,7 @@ std::vector<std::filesystem::path> getFilteredFiles(const std::string& inputPath
 
 int main(int argc, char** argv){
     if (argc < 4){
-        std::cout << "Usage: " << argv[0] << " <input_file.root OR path to files> <output_file.root> <mode> <file_filter>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <input_file.root OR path to files> <output_file.root> <mode> <comma_separated_file_filter>" << std::endl;
         return 1;
     }
 

@@ -41,7 +41,7 @@ class LoopStorage_Ttbar_Events(LoopStorage):
         self.file_dict[file_name] = {}
 
 
-        class_label = 0 if ('Signal' in file_name or 'BG' in file_name) else 1
+        class_label = 1 if ('Signal' in file_name or 'Interference' in file_name) else 0
         print('Info:: Assigned class label %d to file %s' % (class_label, file_name))
         self.file_dict[file_name]['class_label'] = class_label
 

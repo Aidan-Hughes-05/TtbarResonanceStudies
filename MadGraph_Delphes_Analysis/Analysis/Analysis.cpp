@@ -40,6 +40,7 @@ std::map<std::string, float> getTheoryParametersFromFileName(const std::filesyst
     }
 
     theoryParameters["Coupling"] = 0.0f;
+    theoryParameters["HMass"] = 0.0f;
     // 1) Coupling: Find by appearance of "_c" in the file name.
     std::size_t pos = fileName.find("_c");
     if (pos != std::string::npos){
@@ -53,6 +54,19 @@ std::map<std::string, float> getTheoryParametersFromFileName(const std::filesyst
         Constants::g_LOG(LogLevel::INFO, "Extracted coupling parameter: " + std::to_string(coupling) + " from file name: " + fileName);
     } else {
         Constants::g_LOG(LogLevel::INFO, "Coupling parameter not found in file name: " + fileName+ " setting to 0.0");
+    }
+
+    // 2) Mass: Find by appearance of "_m" in the file name.
+    std::size_t pos_mass = fileName.find("_m");
+    if (pos_mass != std::string::npos){
+        std::size_t start = pos_mass + 2; // position after "_m"
+        std::size_t end = start+3; // Always _mXXX
+        std::string massString = fileName.substr(start,end);
+        float mass = std::stof(massString);
+        theoryParameters["HMass"] = mass;
+        Constants::g_LOG(LogLevel::INFO, "Extracted mass parameter: " + std::to_string(mass) + " from file name: " + fileName);
+    } else {
+        Constants::g_LOG(LogLevel::INFO, "Mass parameter not found in file name: " + fileName+ " setting to 0.0");
     }
 
     return theoryParameters;
@@ -162,15 +176,33 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
 }
 
 void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, float lumiWeight, bool doWeights){
-    // Figure out if the input is a file or a directory and get the TChain
-    TChain analysisTChain("mytree");
-    getChainFromUserInput(filesToProcess, analysisTChain);
-    ROOT::RDataFrame df(analysisTChain);
-    ROOT::RDF::RNode node = df;
+    // Build the RDF RDatasetSpec
+    ROOT::RDF::Experimental::RDatasetSpec spec;
 
-    std::map<std::string, float> theoryParameters = getTheoryParametersFromFileName(filesToProcess.at(0));
+    // Convert file paths into strings vector for RDF
+    std::vector<std::string> fileNames;
+    int fileIndex = 1;
+    for (const auto& filePath : filesToProcess) {
+        // Create the RMetaData object which will be used to create the RSample object.
+        ROOT::RDF::Experimental::RMetaData meta;
+        auto theoryParameters = getTheoryParametersFromFileName(filePath);
+        meta.Add("Coupling", theoryParameters["Coupling"]);
+        meta.Add("HMass", theoryParameters["HMass"]);
 
+        // Create the RSample object "iSample" with:
+        // sample name "mySampleName",
+        // tree name "outputTree1",
+        // file name "outputFile.root",
+        // and associated metadata information.
+        ROOT::RDF::Experimental::RSample iSample("sample_" + std::to_string(fileIndex), "mytree", filePath.string(), meta);
+        spec.AddSample(iSample);
+        fileIndex++;
+    }
+        
     
+    // Finally, create an RDataFrame from the RDatasetSpec object.
+    auto df = ROOT::RDataFrame(spec);
+    ROOT::RDF::RNode node = df;
     // 1) Build the top container
     // Status = 1 means final state particles
     auto myFilter = [](std::vector<int> pdgid, std::vector<int> status) { 
@@ -219,11 +251,6 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
     node = node.Define("Top_1_phi","Tops.at(0).Phi()");
     node = node.Define("Top_2_phi","Tops.at(1).Phi()");
 
-    // Define theory parameters as columns
-    for (const auto& param : theoryParameters){
-        node = node.Define(param.first, [value=param.second]() { return value; },{});
-    }
-
     // Some more kinematics
     // 
     // auto deltaRapidity = [](std::vector<TLorentzVector> particles) { return abs(particles.at(0).Rapidity() - particles.at(1).Rapidity()); };
@@ -242,9 +269,18 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
     node = node.Filter("mttbar > 500");
 
     std::vector<std::string> columnsToSave = {"Top_1_pt","Top_2_pt","Top_1_eta","Top_2_eta","Top_1_phi","Top_2_phi",weightColumn,"mttbar"};
-    for (const auto& param : theoryParameters){
-        columnsToSave.push_back(param.first);
-    }
+
+    // Add Coupling per sample
+    node = node.DefinePerSample("Coupling",
+                   [](unsigned int slot, const ROOT::RDF::RSampleInfo &id)
+                   { return id.GetD("Coupling"); });
+    columnsToSave.push_back("Coupling");
+
+    // Add HMass per sample
+    node = node.DefinePerSample("HMass",
+                   [](unsigned int slot, const ROOT::RDF::RSampleInfo &id)
+                   { return id.GetD("HMass"); });
+    columnsToSave.push_back("HMass");
 
     node.Snapshot("Ttbar",outputFileName,columnsToSave);
 }
