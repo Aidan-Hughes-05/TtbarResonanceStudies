@@ -218,8 +218,8 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
     if (!doWeights){
         node = node.Define("dummyWeight",[]() { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
-    } else {
-        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
+    } else { // Return +1 or -1 weight
+        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn/abs(weightColumn); },{"eventWeight"});
         weightColumn = "lumiWeight";
     }
 
@@ -502,6 +502,8 @@ void DelphesHistograms(const std::string& fileName, const std::string& outputFil
 }
 
 float CalculateLumiWeight(const std::vector<std::filesystem::path>& filesToProcess){
+    // TODO: Fix all this function.
+    /*
     // Map with the luminosity weights for each process.
     std::map<std::string, float> xSecMap = {
         {"BG", 518.5}, // in pb ttbar SM
@@ -539,5 +541,7 @@ float CalculateLumiWeight(const std::vector<std::filesystem::path>& filesToProce
     float lumiWeight = 140.1 * 1000 * xSec / sumWeights;
 
     std::cout << "Calculated luminosity weight: " << lumiWeight << std::endl;
-    return lumiWeight;
+    */
+    // TODO: Fix all this function.
+    return 1.0;
 }
