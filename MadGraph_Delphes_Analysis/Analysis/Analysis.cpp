@@ -13,21 +13,8 @@
 #include <map>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 #include <map>
-
-void getChainFromUserInput(const std::vector<std::filesystem::path>& filesToProcess, TChain& chain){
-    // Check validity
-    if (filesToProcess.empty()){
-        Constants::g_LOG(LogLevel::ERROR, "No files provided to build TChain.");
-        throw std::runtime_error("");
-    }
-    // Form the TChain from the list.
-    for (const auto& filePath : filesToProcess){
-        const std::string& fileName = filePath.string();
-        Constants::g_LOG(LogLevel::INFO, "Adding file to TChain: " + fileName);
-        chain.Add(fileName.c_str());
-    }
-}
 
 std::map<std::string, float> getTheoryParametersFromFileName(const std::filesystem::path& filePath){
     std::map<std::string, float> theoryParameters;
@@ -74,13 +61,36 @@ std::map<std::string, float> getTheoryParametersFromFileName(const std::filesyst
 }
 
 
-void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, float lumiWeight, bool doWeights){
+void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, const MetadataObject& metadataObject, bool doWeights){
 
-    // Figure out if the input is a file or a directory and get the TChain
-    TChain analysisTChain("mytree");
-    getChainFromUserInput(filesToProcess, analysisTChain);
-    ROOT::RDataFrame df(analysisTChain);
-    ROOT::RDF::RNode node = df; 
+    // Build the RDF RDatasetSpec
+    ROOT::RDF::Experimental::RDatasetSpec spec;
+
+    // Convert file paths into strings vector for RDF
+    std::vector<std::string> fileNames;
+    int fileIndex = 1;
+    for (const auto& filePath : filesToProcess) {
+        // Create the RMetaData object which will be used to create the RSample object.
+        ROOT::RDF::Experimental::RMetaData meta;
+        auto theoryParameters = getTheoryParametersFromFileName(filePath);
+        meta.Add("Coupling", theoryParameters["Coupling"]);
+        meta.Add("HMass", theoryParameters["HMass"]);
+        meta.Add("lWeight", CalculateLumiWeight(filePath, metadataObject)); 
+
+        // Create the RSample object "iSample" with:
+        // sample name "mySampleName",
+        // tree name "outputTree1",
+        // file name "outputFile.root",
+        // and associated metadata information.
+        ROOT::RDF::Experimental::RSample iSample("sample_" + std::to_string(fileIndex), "mytree", filePath.string(), meta);
+        spec.AddSample(iSample);
+        fileIndex++;
+    }
+        
+    
+    // Finally, create an RDataFrame from the RDatasetSpec object.
+    auto df = ROOT::RDataFrame(spec);
+    ROOT::RDF::RNode node = df;
     
     // 1) Build the top container
     // Status = 1 means final state particles
@@ -97,8 +107,9 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
     if (!doWeights){
         node = node.Define("dummyWeight",[]() { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
-    } else {
-        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn; },{"eventWeight"});
+    } else { // Return +1 or -1 weight
+        node = node.DefinePerSample("lWeight", []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id) { return static_cast<float>(id.GetD("lWeight")); });
+        node = node.Define("lumiWeight",[](float lWeight, float eventWeight) { return lWeight*eventWeight; },{"lWeight","eventWeight"});
         weightColumn = "lumiWeight";
     }
 
@@ -175,7 +186,7 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
     output->Close();
 }
 
-void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, float lumiWeight, bool doWeights){
+void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, const std::string& outputFileName, const MetadataObject& metadataObject, bool doWeights){
     // Build the RDF RDatasetSpec
     ROOT::RDF::Experimental::RDatasetSpec spec;
 
@@ -188,6 +199,7 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
         auto theoryParameters = getTheoryParametersFromFileName(filePath);
         meta.Add("Coupling", theoryParameters["Coupling"]);
         meta.Add("HMass", theoryParameters["HMass"]);
+        meta.Add("lWeight", CalculateLumiWeight(filePath, metadataObject)); 
 
         // Create the RSample object "iSample" with:
         // sample name "mySampleName",
@@ -219,7 +231,8 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
         node = node.Define("dummyWeight",[]() { return 1.0; },{"pdgID"});
         weightColumn = "dummyWeight";
     } else { // Return +1 or -1 weight
-        node = node.Define("lumiWeight",[&lumiWeight](float weightColumn) { return lumiWeight*weightColumn/abs(weightColumn); },{"eventWeight"});
+        node = node.DefinePerSample("lWeight", []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id) { return static_cast<float>(id.GetD("lWeight")); });
+        node = node.Define("lumiWeight",[](float lWeight, float eventWeight) { return lWeight*eventWeight; },{"lWeight","eventWeight"});
         weightColumn = "lumiWeight";
     }
 
@@ -272,13 +285,13 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
 
     // Add Coupling per sample
     node = node.DefinePerSample("Coupling",
-                   [](unsigned int slot, const ROOT::RDF::RSampleInfo &id)
+                   []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id)
                    { return id.GetD("Coupling"); });
     columnsToSave.push_back("Coupling");
 
     // Add HMass per sample
     node = node.DefinePerSample("HMass",
-                   [](unsigned int slot, const ROOT::RDF::RSampleInfo &id)
+                   []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id)
                    { return id.GetD("HMass"); });
     columnsToSave.push_back("HMass");
 
@@ -501,47 +514,66 @@ void DelphesHistograms(const std::string& fileName, const std::string& outputFil
     output->Close();
 }
 
-float CalculateLumiWeight(const std::vector<std::filesystem::path>& filesToProcess){
-    // TODO: Fix all this function.
-    /*
-    // Map with the luminosity weights for each process.
-    std::map<std::string, float> xSecMap = {
-        {"BG", 518.5}, // in pb ttbar SM
-        {"Interference", 0.02899},
-        {"Signal", 0.07545},
-    };
-    // Find the correct cross-section based on the file name
-    float xSec = 0.0;
-    for (const auto& filePath : filesToProcess){
-        const std::string& fileName = filePath.filename().string();
-        for(const auto& pair : xSecMap) {
-            if (fileName.find(pair.first) != std::string::npos) {
-                xSec += pair.second;
-                break;
-            }
-        }
-        if (xSec > 0.0){
-            Constants::g_LOG(LogLevel::INFO, "Found cross-section " + std::to_string(xSec) + " pb for file " + fileName);
-            break; // Exit loop if found
-        }
+std::map<std::string, std::tuple<float, long, float>> FormMetadataObject(std::string pathToMetadataFile){
+    // Create the metadata map
+    std::map<std::string, std::tuple<float, long, float>> metadataMap;
+
+    // Now open the metadata map file and parse it
+    std::filesystem::path metadataFilePath = pathToMetadataFile;
+    std::ifstream xSecFile(metadataFilePath);
+    if (!xSecFile.is_open()){
+        Constants::g_LOG(LogLevel::ERROR, "Could not open cross-section file: " + metadataFilePath.string());
+        throw std::runtime_error("");
     }
 
-    // Check something was found
-    if (xSec == 0.0) {
-        std::cout << "Error: Cross-section not found " << std::endl;
-        std::cout << "Assigning a x-sec of 1.0 pb to avoid crashing." << std::endl;
-        xSec = 1.0;  // Assign a default value
+    // Name, cross-section (pb), number of events, sum of weights
+    std::string line;
+    while (std::getline(xSecFile, line)){
+        // Split by comma
+        std::istringstream ss(line);
+        std::string token;
+        std::vector<std::string> tokens;
+        while (std::getline(ss, token, ',')){
+            tokens.push_back(token);
+        }
+        if (tokens.size() != 4){
+            Constants::g_LOG(LogLevel::ERROR, "Malformed line in cross-section file: " + line);
+            throw std::runtime_error("");
+        }
+        std::string sampleName = tokens[0];
+        float crossSection = std::stof(tokens[1]);
+        long nEvents = std::stol(tokens[2]);
+        float sumWeights = std::stof(tokens[3]);
+        auto metadataTuple = std::make_tuple(crossSection, nEvents, sumWeights);
+        metadataMap[sampleName] = metadataTuple;
+
     }
 
-    // Calculate sum of weights
-    TChain analysisTChain("mytree");
-    getChainFromUserInput(filesToProcess, analysisTChain);
-    ROOT::RDataFrame df(analysisTChain);
-    auto sumWeights = df.Sum("eventWeight").GetValue();
+    xSecFile.close();
+    return metadataMap;
+}
+
+float CalculateLumiWeight(const std::filesystem::path& fileToProcess, const MetadataObject& metadataObject){
+
+    // Get the file name without the full path
+    std::string baseFileName = fileToProcess.filename().string();
+
+    // Remove the last part "_X.root" by first splitting by '_' and then removing the last element
+    std::size_t lastUnderscorePos = baseFileName.find_last_of('_');
+    if (lastUnderscorePos == std::string::npos){
+        Constants::g_LOG(LogLevel::ERROR, "File name does not contain expected '_' character: " + baseFileName);
+        throw std::runtime_error("");
+    }
+    std::string fileNameWithoutLastPart = baseFileName.substr(0, lastUnderscorePos);
+
+
+    // Find the entry in the metadata object
+    const auto& metadata = metadataObject.at(fileNameWithoutLastPart);
+    float xSec = std::get<0>(metadata);
+    // long nEvents = std::get<1>(metadata);
+    float sumWeights = std::get<2>(metadata);
+
     float lumiWeight = 140.1 * 1000 * xSec / sumWeights;
 
-    std::cout << "Calculated luminosity weight: " << lumiWeight << std::endl;
-    */
-    // TODO: Fix all this function.
-    return 1.0;
+    return lumiWeight;
 }

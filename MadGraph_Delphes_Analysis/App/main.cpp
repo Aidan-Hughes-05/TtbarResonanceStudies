@@ -89,12 +89,12 @@ int main(int argc, char** argv){
     // Get the list of files to process
     std::vector<std::filesystem::path> filesToProcess = getFilteredFiles(inputPath, fileFilter);
 
-    float lumiWeight = CalculateLumiWeight(filesToProcess);
+    auto metadataObject = FormMetadataObject("/home/dbaronmo/TtbarResonance/TtbarResonanceStudies/MadGraph_Delphes_Analysis/Metadata/metadata.txt");
 
     ROOT::EnableImplicitMT(8); // Enable multi-threading with 8 threads
 
-    if (mode=="h") PartonHistograms(filesToProcess, outputFileName, lumiWeight, true);
-    if (mode=="n") PartonNtuples(filesToProcess, outputFileName, lumiWeight, true);
+    if (mode=="h") PartonHistograms(filesToProcess, outputFileName, metadataObject, true);
+    if (mode=="n") PartonNtuples(filesToProcess, outputFileName, metadataObject, true);
 
     return 0;
 }
