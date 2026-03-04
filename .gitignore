@@ -14,6 +14,7 @@ Generate/log_files/
 *.pyc
 __pycache__/
 py.py
+*ipynb_checkpoints/
 
 # Ignore C++ build/install directories
 build/

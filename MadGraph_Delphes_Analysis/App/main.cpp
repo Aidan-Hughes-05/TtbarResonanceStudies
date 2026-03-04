@@ -89,7 +89,7 @@ int main(int argc, char** argv){
     // Get the list of files to process
     std::vector<std::filesystem::path> filesToProcess = getFilteredFiles(inputPath, fileFilter);
 
-    auto metadataObject = FormMetadataObject("/home/dbaronmo/TtbarResonance/TtbarResonanceStudies/MadGraph_Delphes_Analysis/Metadata/metadata.txt");
+    auto metadataObject = FormMetadataObject("/home/dbaronmo/SBI_Ttbar/TtbarResonanceStudies/MadGraph_Delphes_Analysis/Metadata/metadata.txt");
 
     ROOT::EnableImplicitMT(8); // Enable multi-threading with 8 threads
 

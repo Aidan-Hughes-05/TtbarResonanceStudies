@@ -173,8 +173,11 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
     histograms.push_back(node.Histo1D({"deltaRapidity_basic", "deltaRapidity_basic", 100, 0, 10},"deltaRapidity", weightColumn));
     histograms.push_back(node.Histo1D({"mttbar_basic", "mttbar_basic", 1000, 0, 1000},"mttbar", weightColumn));
     histograms.push_back(node.Histo1D({"diTopPt_basic", "diTopPt_basic", 1000,0,1000},"diTopPt", weightColumn));
+    histograms.push_back(node.Histo1D({"weight_basic", "weight_basic", 100, -5, 5},weightColumn));
 
-
+    node = node.Filter("mttbar > 500");
+    histograms.push_back(node.Histo1D({"weight_mttbar", "weight_mttbar", 100, -5, 5},weightColumn));
+    
     // Save histograms
     auto output = TFile::Open(outputFileName.c_str(), "RECREATE");
     output->cd();
