@@ -1,0 +1,4 @@
+[submodule "PeakDeepMaster"]
+	path = PeakDeepMaster
+	url = https://github.com/diegobaronm/PeakDeepMaster.git
+	branch = main
