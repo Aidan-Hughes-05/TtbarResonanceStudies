@@ -10,6 +10,7 @@ This repository is organized into event generation, conversion, analysis, and ML
 - `FileConverters/` – converters from LHE to ROOT, and ROOT to H5.
 - `MadGraph_Delphes_Analysis/` – C++ analysis framework to analyse ttbar samples and generate NTuples for training.
 - `MLNotebooks/` – notebooks and trained PyTorch checkpoints for parameter/mass estimation.
+- `PeakDeepMaster/` – Git submodule containing the PyTorch Lightning training/inference framework.
 - `Custom_HELAS/` – custom HELAS Fortran routines used by matrix-element generation.
 - `Outputs/` – produced ROOT/HDF5 outputs.
 - `MG5_aMC_v3_5_11/` – local MadGraph installation used for event production.
@@ -18,6 +19,20 @@ This repository is organized into event generation, conversion, analysis, and ML
 ---
 > [!IMPORTANT]
 > **Note:** The steps below are **not sequential**. Each section describes a different part of the workflow and can be followed independently.
+
+## Clone with submodules
+
+Clone the repository together with `PeakDeepMaster`:
+
+```bash
+git clone --recurse-submodules <repo-url>
+```
+
+If you already cloned the repository without submodules, run:
+
+```bash
+git submodule update --init --recursive
+```
 
 
 ## 1) Compile, install, and use the C++ analysis framework
