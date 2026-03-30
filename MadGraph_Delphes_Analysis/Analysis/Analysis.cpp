@@ -177,6 +177,7 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
 
     node = node.Filter("mttbar > 500");
     histograms.push_back(node.Histo1D({"weight_mttbar", "weight_mttbar", 100, -5, 5},weightColumn));
+    histograms.push_back(node.Histo1D({"mttbar_final", "mttbar_final", 1200, 0, 1200},"mttbar", weightColumn));
     
     // Save histograms
     auto output = TFile::Open(outputFileName.c_str(), "RECREATE");
