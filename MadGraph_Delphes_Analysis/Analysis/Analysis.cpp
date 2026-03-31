@@ -28,6 +28,7 @@ std::map<std::string, float> getTheoryParametersFromFileName(const std::filesyst
 
     theoryParameters["Coupling"] = 0.0f;
     theoryParameters["HMass"] = 0.0f;
+    theoryParameters["HWidth"] = -1.0f;
     // 1) Coupling: Find by appearance of "_c" in the file name.
     std::size_t pos = fileName.find("_c");
     if (pos != std::string::npos){
@@ -56,6 +57,24 @@ std::map<std::string, float> getTheoryParametersFromFileName(const std::filesyst
         Constants::g_LOG(LogLevel::INFO, "Mass parameter not found in file name: " + fileName+ " setting to 0.0");
     }
 
+    // 3) Width: Find by appearance of "_w" in the file name.
+    std::size_t pos_width = fileName.find("_w");
+    if (pos_width != std::string::npos){
+        std::string after_width_string = fileName.substr(pos_width);
+        std::size_t pos_end_width = after_width_string.find("_", 1); // Find the next underscore after "_w"
+        std::string widthString = fileName.substr(pos_width+2, pos_width + pos_end_width);
+        float width = std::stof(widthString);
+        theoryParameters["HWidth"] = width;
+        Constants::g_LOG(LogLevel::INFO, "Extracted width parameter: " + std::to_string(width) + " from file name: " + fileName);
+    } else {
+        if (fileName.find("Signal") != std::string::npos || fileName.find("Interference") != std::string::npos){
+            Constants::g_LOG(LogLevel::INFO, "Width parameter not found in file name: " + fileName+ ", but sample seems to be signal or interference. Setting to 2.0!");
+            theoryParameters["HWidth"] = 2.0f;
+        } else {
+            Constants::g_LOG(LogLevel::INFO, "Width parameter not found in file name: " + fileName+ ", background sample setting width to -1.0");
+        }
+    }
+
     return theoryParameters;
 
 }
@@ -75,6 +94,7 @@ void PartonHistograms(const std::vector<std::filesystem::path>& filesToProcess, 
         auto theoryParameters = getTheoryParametersFromFileName(filePath);
         meta.Add("Coupling", theoryParameters["Coupling"]);
         meta.Add("HMass", theoryParameters["HMass"]);
+        meta.Add("HWidth", theoryParameters["HWidth"]);
         meta.Add("lWeight", CalculateLumiWeight(filePath, metadataObject)); 
 
         // Create the RSample object "iSample" with:
@@ -203,6 +223,7 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
         auto theoryParameters = getTheoryParametersFromFileName(filePath);
         meta.Add("Coupling", theoryParameters["Coupling"]);
         meta.Add("HMass", theoryParameters["HMass"]);
+        meta.Add("HWidth", theoryParameters["HWidth"]);
         meta.Add("lWeight", CalculateLumiWeight(filePath, metadataObject)); 
 
         // Create the RSample object "iSample" with:
@@ -298,6 +319,12 @@ void PartonNtuples(const std::vector<std::filesystem::path>& filesToProcess, con
                    []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id)
                    { return id.GetD("HMass"); });
     columnsToSave.push_back("HMass");
+
+    // Add HWidth per sample
+    node = node.DefinePerSample("HWidth",
+                   []([[maybe_unused]] unsigned int slot, const ROOT::RDF::RSampleInfo &id)
+                   { return id.GetD("HWidth"); });
+    columnsToSave.push_back("HWidth");
 
     node.Snapshot("Ttbar",outputFileName,columnsToSave);
 }

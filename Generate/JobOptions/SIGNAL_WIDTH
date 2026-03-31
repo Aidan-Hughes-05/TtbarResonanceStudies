@@ -1,0 +1,11 @@
+import model Standard_Model_exten_UFO
+generate p p > hh > t t~ NP==2
+output REPLACEOUTPUT
+shell cp Custom_HELAS/*.f REPLACEOUTPUT/Source/DHELAS/.
+launch
+set mhh REPLACE_MASS
+set coupteven REPLACE_COUPLING
+set ceffe REPLACE_COUPLING
+set whh 285 # The width for these parameters (0.7, 950), calculated from the formula, is 22.0 GeV. This corresponds to ~2.3% of the mass.
+set iseed REPLACESEED
+set nevents 25000

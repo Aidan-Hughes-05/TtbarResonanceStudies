@@ -8,7 +8,7 @@ ProcessPlusOne = $INT(plusone,%d)
 request_memory = 16GB
 request_cpus = 8
 
-log_dir = /home/dbaronmo/TtbarResonance/MCJobLogs/
+log_dir = /home/dbaronmo/SBI_Ttbar/MCJobLogs/
 
 log = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).log
 output = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).out

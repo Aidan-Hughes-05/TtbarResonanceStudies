@@ -10,8 +10,8 @@ COUPLING=${4} # This is the coupling value to set in the job option file.
 MASS=${5} # This is the mass value to set in the job option file.
 echo "TtbarEventGeneration::INFO: Job started with PROCESS=${PROCESS}, JOBOPTION=${JOBOPTION}, COUPLING=${COUPLING}, MASS=${MASS}"
 
-BASE_PATH=/home/dbaronmo/TtbarResonance/TtbarResonanceStudies/
-OUTPUT_DATADIR=/home/dbaronmo/TtbarResonance/MadGraphOutputs/
+BASE_PATH=/home/dbaronmo/SBI_Ttbar/TtbarResonanceStudies/
+OUTPUT_DATADIR=/home/dbaronmo/SBI_Ttbar/MadGraphOutputs/
 mkdir -p ${OUTPUT_DATADIR} # create the output directory if it doesn't exist
 echo "TtbarEventGeneration::INFO: Output data directory is ${OUTPUT_DATADIR}"
 echo "TtbarEventGeneration::INFO: Source code base path is ${BASE_PATH}"
