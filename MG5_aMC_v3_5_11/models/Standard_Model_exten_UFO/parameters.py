@@ -462,9 +462,9 @@ muH = Parameter(name = 'muH',
                 texname = '\\mu')
 
 WHH = Parameter(name = 'WHH',
-                nature = 'external', # 'internal' -> If you want to compute the width on the fly, with the formula below. 'external' -> If you want to set the width by hand.
+                nature = 'internal', # 'internal' -> If you want to compute the width on the fly, with the formula below. 'external' -> If you want to set the width by hand.
                 type = 'real',
-                value = 21.9, #'((3*MT**2)*(MHH**2 - 4*MT**2)**0.5*((coupteven**2 + couptodd**2)*MHH**2 - (2*coupteven*MT)**2)/((8*MHH**2)*cmath.pi*vev**2))',
+                value = '((3*MT**2)*(MHH**2 - 4*MT**2)**0.5*((coupteven**2 + couptodd**2)*MHH**2 - (2*coupteven*MT)**2)/((8*MHH**2)*cmath.pi*vev**2))',
                 texname = '\\text{WHH}',
                 lhablock = 'DECAY',
                 lhacode = [ 99 ])

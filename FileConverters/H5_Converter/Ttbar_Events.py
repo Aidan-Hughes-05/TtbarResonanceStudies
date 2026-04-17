@@ -1,5 +1,4 @@
 import argparse
-from math import ceil
 import os
 import h5py
 import numpy as np
@@ -57,26 +56,17 @@ class LoopStorage_Ttbar_Events(LoopStorage):
     def get_total_events_size(self):
         return sum(file_info['n_events_in_tree'] for file_info in self.file_dict.values())
 
-def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events = None , file_key : str = None, sets_to_save_list = None, iteration : int = -1):
-    # Check set to save is valid
-    if sets_to_save_list == None:
-        print('Error:: Sets to save list not provided.')
-        exit(1)
-
-    events_to_save = sets_to_save_list[iteration]
-    if events_to_save <= 0:
-        print('Error:: Sets to save must be a positive integer.')
-        exit(1)
-
-    # Check that the iteration is valid
-    if iteration == -1:
-        print('Error:: Iteration not provided.')
-        exit(1)
-
+def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events = None , file_key : str = None):
     # Check that the loop storage is provided
     if loop_storage == None:
             print('Error:: Loop storage not provided.')
             exit(1)
+
+    # Derive events_to_save from the actual chunk data, not a pre-calculated estimate
+    events_to_save = len(tree['lumiWeight'])
+    if events_to_save <= 0:
+        print('Error:: Chunk has no events. Skipping.')
+        return
 
     # Open the correct output file
     output_file_name = args.output
@@ -131,9 +121,9 @@ def MakeDataset_Ttbar_Events(args, tree, loop_storage : LoopStorage_Ttbar_Events
         label_data = labels_dataset[range_to_change[0]:range_to_change[1]]
         
 
-        print('Info:: Saving %d events...' % events_to_save)
+        print('Info:: Saving %d events (chunk has %d entries)...' % (events_to_save, len(top_1_pt)))
+        assert events_to_save == len(top_1_pt), 'Mismatch between events_to_save (%d) and actual chunk size (%d)' % (events_to_save, len(top_1_pt))
         save_index = 0
-        print(len(top_1_pt))
         for i in tqdm(range(events_to_save), desc='Streaming to HDF5 file', unit='sets'):
 
             particle_data[save_index] = (
@@ -180,7 +170,7 @@ def create_H5(name, num_events_to_save):
         # Declare datatypes
         particles_dt = np.dtype([('top1_pt', np.float32), ('top1_eta', np.float32), ('top1_phi', np.float32), ('top2_pt', np.float32), ('top2_eta', np.float32), ('top2_phi', np.float32)])
         global_dt = np.dtype([('lumiWeight', np.float32),('mttbar', np.float32), ('coupling', np.float32), ('hmass', np.float32), ('hwidth', np.float32)])
-        metadata_dt = np.dtype([('num_saved_events', np.float32)])
+        metadata_dt = np.dtype([('num_saved_events', np.int64)])
 
         # Create groups and datasets as needed
         inputs_group = f.create_group('INPUTS')
@@ -228,30 +218,7 @@ if __name__ == "__main__":
         root_file = uproot.open(file_path, num_workers=8)
         tree = root_file["Ttbar"]
         memory_size = "128 MB"
-        num_events_to_save = tree.num_entries
-        events_per_iteration = tree.num_entries_for(memory_size, get_branches())
-        number_of_iterations = ceil(num_events_to_save / events_per_iteration)
         print('Info:: Total number of entries in the tree: %d' % tree.num_entries)
-        print('Info:: Number of entries that fit in memory size of %s: %d' % (memory_size, events_per_iteration))
-        print('Info:: Number of iterations to process the file in chunks of %s: %d' % (memory_size, number_of_iterations))
 
-        # Define sets to save per-iteration
-        sets = []
-        while sum(sets) < num_events_to_save:
-            sets.append(events_per_iteration)
-            # Adjust last set to match exactly the number of events to save
-            if sum(sets) > num_events_to_save:
-                sets[-1] = num_events_to_save - sum(sets[:-1])
-        
-        
-        sum_sets = sum(sets)    
-        if sum_sets != num_events_to_save:
-            print('Error:: Mismatch in number of sets to save. Expected: %d, Got: %d' % (num_events_to_save, sum_sets))
-            exit(1)
-
-        print(sets)
-
-        counter = 0
         for itree in uproot.iterate(tree, get_branches(), step_size=memory_size, library="np", num_workers=8):
-            MakeDataset_Ttbar_Events(args, itree, loop_storage, file_key = file_path, sets_to_save_list = sets, iteration=counter)
-            counter += 1
+            MakeDataset_Ttbar_Events(args, itree, loop_storage, file_key = file_path)
