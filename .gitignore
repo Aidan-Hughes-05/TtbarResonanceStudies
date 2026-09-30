@@ -25,3 +25,6 @@ install/
 
 # Ignore environment files
 .env
+
+# Ignore MadGraph_Delphes_Analysis results
+MadGraph_Delphes_Analysis/results/*

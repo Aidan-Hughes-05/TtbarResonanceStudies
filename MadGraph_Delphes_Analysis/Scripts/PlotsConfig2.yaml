@@ -1,0 +1,30 @@
+background_path: /home/dbaronmo/SBI_Ttbar/NTuples/BG_lumi_weighted.root
+signal_path: /home/dbaronmo/SBI_Ttbar/NTuples/Signal_1param_coupling_lumi_weighted.root
+interference_path: /home/dbaronmo/SBI_Ttbar/NTuples/Interference_1param_coupling_lumi_weighted.root
+ttree: Ttbar
+
+observables:
+  - name: mttbar
+    x_range: [500, 1200]
+    x_label: "$m(t\\bar{t})$ [GeV]"
+    y_label: Events (140 1/fb)
+    weights: lumiWeight
+    font_size: 16
+    n_bins: 70
+    params:
+      - Coupling: 0.8
+        HMass: 800
+        labels: 
+          - C_{e}
+          - m_{S}
+        x_range: [600, 1000]
+        skip_background: true
+      - Coupling: 1.2
+        HMass: 800
+        labels: 
+          - C_{e}
+          - m_{S}
+        x_range: [600, 1000]
+        skip_background: true
+
+
