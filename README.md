@@ -92,15 +92,22 @@ analysis_app /path/to/sample.root /path/to/hists.root h
 
 ## 2) Generate samples with HTCondor
 
+### Step 2.1: Prerequisites
+
+If not already done, just run in `lxplus` and setup `StatAnalysis` release. This was successfully compiled with:
+```bash
+setupATLAS --quiet && lsetup git && asetup StatAnalysis,0.7.2
+```
+
 Generation scripts are in `Generate/`.
 
-### Step 2.1: Go to submission directory
+### Step 2.2: Go to submission directory
 
 ```bash
 cd Generate
 ```
 
-### Step 2.2: Submit one job manually
+### Step 2.3: Submit one job manually
 
 ```bash
 condor_submit -append "ARGS=Signal_c1p5_m600 SIGNAL 1.5 600" Submit.sub
@@ -115,7 +122,7 @@ condor_submit -append "ARGS=Signal_c1p5_m600 SIGNAL 1.5 600" Submit.sub
 - `PROCESS`: `SIGNAL` or `INTERFERENCE`
 - `tag` convention: `Signal_cXpY_mZZZ` (example: `Signal_c1p5_m600`)
 
-### Step 2.3: Submit a grid of jobs (recommended)
+### Step 2.4: Submit a grid of jobs (recommended)
 
 Edit arrays in `Generate/submit_condor_jobs.sh`:
 
@@ -129,7 +136,7 @@ Then submit all combinations:
 bash submit_condor_jobs.sh
 ```
 
-### Step 2.4: Check outputs
+### Step 2.5: Check outputs
 
 - Condor logs are configured in `Submit.sub` (`log`, `output`, `error`).
 - Generated LHE files are written by `executable.sh` under your configured MadGraph output path, grouped by tag.
