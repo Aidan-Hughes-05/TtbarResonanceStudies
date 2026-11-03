@@ -12,7 +12,7 @@ PROCESSES=(
 
 # Coupling values to run
 COUPLINGS=(
-	1.1
+	1.0
 )
 
 # Mass values to run (GeV)

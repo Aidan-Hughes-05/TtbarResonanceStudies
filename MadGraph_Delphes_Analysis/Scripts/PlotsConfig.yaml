@@ -1,6 +1,6 @@
 background_path: /home/dbaronmo/SBI_Ttbar/NTuples/BG_lumi_weighted.root
-signal_path: /home/dbaronmo/SBI_Ttbar/NTuples/Signal_1param_coupling_lumi_weighted.root
-interference_path: /home/dbaronmo/SBI_Ttbar/NTuples/Interference_1param_coupling_lumi_weighted.root
+signal_path: /home/hughesa/dip_hunting/analysisROOTs/ntuples/Signal_c1p0_m1000.root
+interference_path: /home/hughesa/dip_hunting/analysisROOTs/ntuples/Interference_c1p0_m1000.root
 ttree: Ttbar
 
 observables:
@@ -13,18 +13,12 @@ observables:
     n_bins: 70
     params:
       - Coupling: 1.0
-        HMass: 700
-        labels: 
-          - C_{e}
-          - m_{S}
-        x_range: [500, 900]
-        skip_background: true
-      - Coupling: 1.0
         HMass: 1000
         labels: 
           - C_{e}
           - m_{S}
         x_range: [800, 1200]
         skip_background: true
+
 
 
