@@ -1,0 +1,18 @@
+set run_mode 2
+set nb_core 4
+set automatic_html_opening False
+import model Standard_Model_exten_UFO
+generate p p > hh > t t~ NP==2
+output /home/hughesa/dip_hunting/MadGraphOutputs/sig_test
+shell cp Custom_HELAS/*.f /home/hughesa/dip_hunting/MadGraphOutputs/sig_test/Source/DHELAS/.
+launch
+shower=Pythia8
+detector=Delphes
+done
+set mhh 600
+set coupteven 1.5
+set ceffe 1.5
+set iseed 42
+set nevents 10
+/home/hughesa/dip_hunting/TtbarResonanceStudies/MG5_aMC_v3_5_11/Delphes/cards/delphes_card_ATLAS.tcl
+done

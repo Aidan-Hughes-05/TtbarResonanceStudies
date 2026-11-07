@@ -1,0 +1,23 @@
+executable = executable_decay.sh
+getenv = true
+
+# need to start with 1 because we use this to set the seed
+plusone = $(Process) + 1
+ProcessPlusOne = $INT(plusone,%d)
+
+request_memory = 8GB
+request_cpus = 4
+
+log_dir = /home/hughesa/dip_hunting/MCJobLogs/
+
+log = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).log
+output = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).out
+error = $(log_dir)/ttbar_resonance_$(ProcessPlusOne).err
+arguments = $(ProcessPlusOne) $(ARGS)
+
+transfer_input_files = executable_decay.sh
+
+should_transfer_files = Yes
+when_to_transfer_output = ON_EXIT
+
+queue 0
