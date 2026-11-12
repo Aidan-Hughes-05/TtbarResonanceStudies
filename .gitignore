@@ -28,3 +28,10 @@ install/
 
 # Ignore MadGraph_Delphes_Analysis results
 MadGraph_Delphes_Analysis/results/*
+
+# Ignore Delphes installation
+MG5_aMC_v3_5_11/Delphes/
+MG5_aMC_v3_5_11/Delphes.tgz
+
+# Ignore additional tools
+MG5_aMC_v3_5_11/HEPTools/
