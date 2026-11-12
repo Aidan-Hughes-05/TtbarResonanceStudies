@@ -5,8 +5,8 @@ getenv = true
 plusone = $(Process) + 1
 ProcessPlusOne = $INT(plusone,%d)
 
-request_memory = 8GB
-request_cpus = 4
+request_memory = 16GB
+request_cpus = 8
 
 log_dir = /home/hughesa/dip_hunting/MCJobLogs/
 

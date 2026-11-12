@@ -1,5 +1,5 @@
 import model Standard_Model_exten_UFO
-generate p p > hh > t t~ NP==2
+generate p p > hh > t t~ NP=2, (t > w+ b, w+ > j j), (t~ > w- b~, w- > j j)
 output REPLACEOUTPUT
 shell cp Custom_HELAS/*.f REPLACEOUTPUT/Source/DHELAS/.
 launch
@@ -10,6 +10,6 @@ set mhh REPLACE_MASS
 set coupteven REPLACE_COUPLING
 set ceffe REPLACE_COUPLING
 set iseed REPLACESEED
-set nevents 100
+set nevents 1000
 /home/hughesa/dip_hunting/TtbarResonanceStudies/MG5_aMC_v3_5_11/Delphes/cards/delphes_card_ATLAS.tcl
 done

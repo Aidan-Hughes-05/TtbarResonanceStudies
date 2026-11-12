@@ -11,7 +11,7 @@ MASS=${5} # This is the mass value to set in the job option file.
 echo "TtbarEventGeneration::INFO: Job started with PROCESS=${PROCESS}, JOBOPTION=${JOBOPTION}, COUPLING=${COUPLING}, MASS=${MASS}"
 
 BASE_PATH=/home/hughesa/dip_hunting/TtbarResonanceStudies/
-OUTPUT_DATADIR=/home/hughesa/dip_hunting/MadGraphOutputs/Pythia8Delphes/
+OUTPUT_DATADIR=/home/hughesa/dip_hunting/delphesROOTs
 mkdir -p ${OUTPUT_DATADIR} # create the output directory if it doesn't exist
 echo "TtbarEventGeneration::INFO: Output data directory is ${OUTPUT_DATADIR}"
 echo "TtbarEventGeneration::INFO: Source code base path is ${BASE_PATH}"
@@ -33,10 +33,7 @@ ${BASE_PATH}/MG5_aMC_v3_5_11/bin/mg5_aMC -f ${NEW_STEERINGFILE}
 # Move the results and steering file to the output directory.
 echo "TtbarEventGeneration::INFO: MadGraph finished. Copying output files."
 mkdir ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}
-mv output${PROCESS}/Events/run_01/unweighted_events.lhe.gz ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/unweighted_events_${PROCESS}.lhe.gz
-gunzip ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/unweighted_events_${PROCESS}.lhe.gz
-mv output${PROCESS}/Events/run_01/tag_1_delphes_events.root ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/delphes_events_${PROCESS}.root
-mv output${PROCESS}/Events/run_01/*.log ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/delphes_events_${PROCESS}.log
+mv output${PROCESS}/Events/run_01/tag_1_delphes_events.root ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/${OUTPUT_DIR_NAME}_${PROCESS}.root
 mv ${NEW_STEERINGFILE} ${OUTPUT_DATADIR}/${OUTPUT_DIR_NAME}/steering${PROCESS}
 echo "TtbarEventGeneration::INFO: Finished copying output files."
 
